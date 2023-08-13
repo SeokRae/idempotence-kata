@@ -1,5 +1,7 @@
 # 멱등성 매커니즘 구현 해보기
 
+- [멱등성 고민해보기](https://github.com/SeokRae/idempotence-kata/tree/master/idempotence-api)
+
 ## 멱등성이란?
 
 - [MDN Web Docs 용어 사전: 웹 용어 정의 - 멱등성](https://developer.mozilla.org/ko/docs/Glossary/Idempotent)
@@ -9,10 +11,66 @@
 - [NHN Cloud Meetup - 지속 가능한 소프트웨어를 위한 코딩 방법 - 마지막 맺음말.](https://meetup.nhncloud.com/posts/218)
 - [HTTP 메소드의 멱등성, 그리고 안전한 메서드](https://hudi.blog/http-method-idempotent/)
 
+## 멱등성 구현 코드
+
+- 요청 헤더에 특정 키를 추가하여 멱등성을 구현
+
+```text
+├── main
+│         ├── java
+│         │         └── com
+│         │             └── example
+│         │                 └── idempotence
+│         │                     ├── application
+│         │                     │         └── item
+│         │                     │             ├── controller
+│         │                     │             │         └── IdempotentLocalCachedController.java
+│         │                     │             ├── domain
+│         │                     │                      └── Item.java
+│         │                     │             └── service
+│         │                     │                 └── ItemService.java
+└── test
+    └── java
+        └── com
+            └── example
+                └── idempotence
+                    └── application
+                        └── item
+                            └── controller
+                                ├── IdempotentLocalCachedControllerDecreaseLoadTest.java    // (1) 재고 감소 부하 테스트
+                                ├── IdempotentLocalCachedControllerDeleteTest.java          // (2) 재고 삭제 테스트 (멱등성) 
+                                ├── IdempotentLocalCachedControllerIncreaseLoadTest.java    // (3) 재고 증가 부하 테스트
+                                ├── IdempotentLocalCachedControllerNoHeaderTest.java        // (4) 재고 감소 테스트 (멱등성 헤더 제외)
+                                ├── IdempotentLocalCachedControllerPutTest.java             // (5) 재고 수정 테스트 (멱등성)
+                                └── IdempotentLocalCachedControllerUnitTest.java            // (6) 재고 수정 단위 테스트
+```
+
+- [IdempotentLocalCachedController](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/main/java/com/example/idempotence/application/item/controller/IdempotentLocalCachedController.java)
+
 ## 멱등성을 테스트 하기 위한 방법
 
 - PUT, DELETE 요청시 idempotent 헤더를 추가하여 테스트
-- 부하 테스트 용으로 증감에 대한 내용 테스트 추가
+    - 부하 테스트 용으로 증감에 대한 내용 테스트 추가
+
+- (1): [IdempotentLocalCachedControllerDecreaseLoadTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/controller/IdempotentLocalCachedControllerDecreaseLoadTest.java)
+    - 재고 감소 부하 테스트 (멱등성 헤더 포함)
+- (2): [IdempotentLocalCachedControllerDeleteTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/controller/IdempotentLocalCachedControllerDeleteTest.java)
+    - 재고 삭제 테스트 (멱등성 헤더 포함)
+- (3): [IdempotentLocalCachedControllerIncreaseLoadTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/controller/IdempotentLocalCachedControllerIncreaseLoadTest.java)
+    - 재고 증가 부하 테스트 (멱등성 헤더 포함)
+- (4): [IdempotentLocalCachedControllerNoHeaderTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/controller/IdempotentLocalCachedControllerNoHeaderTest.java)
+    - 재고 감소 테스트 (멱등성 헤더 제외)
+- (5): [IdempotentLocalCachedControllerPutTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/controller/IdempotentLocalCachedControllerPutTest.java)
+    - 재고 수정 테스트 (멱등성 헤더 포함)
+- (6): [IdempotentLocalCachedControllerUnitTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/controller/IdempotentLocalCachedControllerUnitTest.java)
+    - 재고 수정 단위 테스트
+
+
+헤더 값으로 관리 하는 곳들이 있어서 일단은 생각나는대로 구현해봤지만, 로컬 캐시로 구현하여 추후 Redis와 같은 글로벌 캐시로 구현 필요
+
+구현부는 멱등성 구현만 고려만 했기 때문에, 멀티 스레드 환경에서, 분산 시스템 환경에서 동시성 처리를 위한 방법도 자연스레 따라와야 함을 느낌
+
+따라서, 동시성에 대해서 예제를 어떻게 만들어봐야 할까 잠깐 고민해보고 정리
 
 ## 동시성 처리를 위한 방법
 
@@ -64,5 +122,5 @@
         - 데이터베이스 기반 락: 락 정보를 데이터베이스에 저장하고 모든 서버가 해당 데이터베이스를 참조하여 락상태를 판단하는 방식
         - 분산 시스템 기반 락: Zookeeper와 같은 분산 시스템을 사용하여 락을 관리하는 방식
     - Redis를 이용한 분산락 구현
-      - [Distributed Locks with Redis](https://redis.io/docs/manual/patterns/distributed-locks/)
-      - [Redisson - Distributed locks and synchronizers](https://github.com/redisson/redisson)
+        - [Distributed Locks with Redis](https://redis.io/docs/manual/patterns/distributed-locks/)
+        - [Redisson - Distributed locks and synchronizers](https://github.com/redisson/redisson)

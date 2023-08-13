@@ -27,7 +27,6 @@ public class IdempotentLocalCachedController {
         return ResponseEntity.ok().body(items);
     }
 
-
     @GetMapping("/item/{id}")
     public ResponseEntity<Item> getItem(@PathVariable String id) {
         Item item = itemService.getItem(id);
@@ -66,7 +65,7 @@ public class IdempotentLocalCachedController {
                 .body("Updated successfully");
     }
 
-    // 수량 증가
+    // 수량 감소
     @PutMapping("/item/{itemId}/decrement")
     public ResponseEntity<String> decrementItemQuantity(
             @PathVariable String itemId,
@@ -86,6 +85,29 @@ public class IdempotentLocalCachedController {
             return ResponseEntity.ok("Updated successfully, new quantity: " + item.getQuantity());
         } catch (IllegalArgumentException e) {
             log.warn("수량 감소 실패: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/item/{itemId}/increment")
+    public ResponseEntity<String> incrementItemQuantity(
+            @PathVariable String itemId,
+            @RequestHeader("idempotency-key") String idempotencyKey,
+            @RequestParam int incrementBy
+    ) {
+        if (idempotencyKeys.getIfPresent(idempotencyKey) != null) {
+            log.warn("이미 처리된 요청: {}", idempotencyKey);
+            return ResponseEntity.ok("Request already processed");
+        }
+
+        try {
+            Item item = itemService.incrementQuantity(itemId, incrementBy);
+            idempotencyKeys.put(idempotencyKey, true);
+
+            log.info("수량 증가 성공: {}", item);
+            return ResponseEntity.ok("Updated successfully, new quantity: " + item.getQuantity());
+        } catch (IllegalArgumentException e) {
+            log.warn("수량 증가 실패: {}", e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }

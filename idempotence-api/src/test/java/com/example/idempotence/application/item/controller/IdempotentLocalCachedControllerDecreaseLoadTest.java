@@ -2,7 +2,6 @@ package com.example.idempotence.application.item.controller;
 
 import com.example.idempotence.application.item.domain.Item;
 import com.example.idempotence.application.item.service.ItemService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -23,10 +22,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class IdempotentLocalCachedControllerLoadTest {
+class IdempotentLocalCachedControllerDecreaseLoadTest {
+
     @Autowired
     private MockMvc mockMvc;
-
     @Autowired
     private ItemService itemService;
 
@@ -40,7 +39,7 @@ class IdempotentLocalCachedControllerLoadTest {
 
     @DisplayName("부하 테스트 - 수량 감소")
     @Test
-    public void multiThreadedIncrementTest() throws Exception {
+    public void multiThreadedDecrementTest() throws Exception {
         int numberOfThreads = 100;
         int decrementBy = 1;
         String itemId = "multithread-item";
@@ -73,6 +72,43 @@ class IdempotentLocalCachedControllerLoadTest {
         mockMvc.perform(get("/item/" + itemId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.quantity").value(0));
+    }
+
+    @DisplayName("부하 테스트 - 수량 감소")
+    @Test
+    public void multiThreadedIncrementTest() throws Exception {
+        int numberOfThreads = 100;
+        int incrementBy = 1;
+        String itemId = "multithread-item";
+        String idempotencyKeyPrefix = "key-";
+
+        ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
+        CountDownLatch latch = new CountDownLatch(numberOfThreads);
+        for (int i = 0; i < numberOfThreads; i++) {
+            int finalI = i;
+            executor.submit(() -> {
+                try {
+                    mockMvc.perform(put("/item/" + itemId + "/increment")
+                                    .header("idempotency-key", idempotencyKeyPrefix + finalI)
+                                    .param("incrementBy", String.valueOf(incrementBy))
+                                    .contentType(MediaType.APPLICATION_JSON))
+                            .andExpect(status().isOk())
+                            .andExpect(content().string(containsString("Updated successfully")));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        // 모든 스레드가 완료될 때까지 기다림
+        latch.await();
+
+        // 최종적으로 생성된 데이터의 개수 확인
+        mockMvc.perform(get("/item/" + itemId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.quantity").value(numberOfThreads));
     }
 
 }

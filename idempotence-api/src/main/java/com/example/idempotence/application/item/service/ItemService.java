@@ -44,11 +44,12 @@ public class ItemService {
         });
     }
 
-    // 수량 증가
+    // 수량 감소
     public Item decrementQuantity(String itemId, int decrementBy) {
 
         items.compute(itemId, (key, item) -> {
-            if (item == null) {
+            if(item == null) {
+                log.error("수량 감소 실패 id: {}", itemId);
                 throw new IllegalArgumentException("Item with id " + itemId + " does not exist");
             }
             int newQuantity = item.getQuantity() - decrementBy;
@@ -60,9 +61,24 @@ public class ItemService {
             item.setQuantity(newQuantity);
             return item;
         });
+
         return items.get(itemId);
     }
 
+    // 수량 증가
+    public Item incrementQuantity(String itemId, int incrementBy) {
+        items.compute(itemId, (key, item) -> {
+            if(item == null) {
+                log.error("존재하지 않는 아이템 id: {}", itemId);
+                throw new IllegalArgumentException("Item with id " + itemId + " does not exist");
+            }
+            item.setQuantity(item.getQuantity() + incrementBy);
+            log.info("수량 증가, id: {} by: {} to: {}", itemId, incrementBy, item.getQuantity());
+            return item;
+        });
+
+        return items.get(itemId);
+    }
 
     // 조회
     public Item getItem(String itemId) {

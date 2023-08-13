@@ -33,7 +33,7 @@ class IdempotentLocalCachedControllerLoadTest {
     @BeforeEach
     void setUp() {
         // 초기 아이템 추가 (수량 0으로 시작)
-        Item item = new Item("multithread-item", "Multithread Item", 10);
+        Item item = new Item("multithread-item", "Multithread Item", 100);
         itemService.addItem(item);
 
     }
@@ -41,7 +41,7 @@ class IdempotentLocalCachedControllerLoadTest {
     @DisplayName("부하 테스트 - 수량 감소")
     @Test
     public void multiThreadedIncrementTest() throws Exception {
-        int numberOfThreads = 10;
+        int numberOfThreads = 100;
         int decrementBy = 1;
         String itemId = "multithread-item";
         String idempotencyKeyPrefix = "key-";

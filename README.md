@@ -17,18 +17,18 @@
 
 ```text
 ├── main
-│         ├── java
-│         │         └── com
-│         │             └── example
-│         │                 └── idempotence
-│         │                     ├── application
-│         │                     │         └── item
-│         │                     │             ├── controller
-│         │                     │             │         └── IdempotentLocalCachedController.java
-│         │                     │             ├── domain
-│         │                     │                      └── Item.java
-│         │                     │             └── service
-│         │                     │                 └── ItemService.java
+│         └── java
+│                   └── com
+│                       └── example
+│                           └── idempotence
+│                               └── application
+│                                         └── item
+│                                             ├── controller
+│                                             │         └── IdempotentLocalCachedController.java
+│                                             ├── domain
+│                                             │        └── Item.java
+│                                             └── service
+│                                                 └── ItemService.java
 └── test
     └── java
         └── com

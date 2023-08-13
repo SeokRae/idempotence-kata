@@ -18,12 +18,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class IdempotentLocalCachedControllerDeleteTest {
 
+    private final String IDEMPOTENCE_KEY = "unique-key-delete";
+    private final String ITEM_ID = "1";
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     private ItemService itemService;
-    private final String IDEMPOTENCE_KEY = "unique-key-delete";
-    private final String ITEM_ID = "1";
 
     @BeforeEach
     void setUp() {

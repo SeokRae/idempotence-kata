@@ -1,6 +1,5 @@
 package com.example.idempotence.core.config;
 
-import com.example.idempotence.application.item.domain.Item;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.cache.annotation.EnableCaching;

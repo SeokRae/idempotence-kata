@@ -124,3 +124,5 @@
     - Redis를 이용한 분산락 구현
         - [Distributed Locks with Redis](https://redis.io/docs/manual/patterns/distributed-locks/)
         - [Redisson - Distributed locks and synchronizers](https://github.com/redisson/redisson)
+    - DB를 위한 분산락 구현
+      - [MySQL을 이용한 분산락으로 여러 서버에 걸친 동시성 관리](https://techblog.woowahan.com/2631/)

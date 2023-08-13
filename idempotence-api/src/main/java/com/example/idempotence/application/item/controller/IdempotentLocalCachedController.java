@@ -66,6 +66,30 @@ public class IdempotentLocalCachedController {
                 .body("Updated successfully");
     }
 
+    // 수량 증가
+    @PutMapping("/item/{itemId}/decrement")
+    public ResponseEntity<String> decrementItemQuantity(
+            @PathVariable String itemId,
+            @RequestHeader("idempotency-key") String idempotencyKey,
+            @RequestParam int decrementBy
+    ) {
+        if (idempotencyKeys.getIfPresent(idempotencyKey) != null) {
+            log.warn("이미 처리된 요청: {}", idempotencyKey);
+            return ResponseEntity.ok("Request already processed");
+        }
+
+        try {
+            Item item = itemService.decrementQuantity(itemId, decrementBy);
+            idempotencyKeys.put(idempotencyKey, true);
+
+            log.info("수량 감소 성공: {}", item);
+            return ResponseEntity.ok("Updated successfully, new quantity: " + item.getQuantity());
+        } catch (IllegalArgumentException e) {
+            log.warn("수량 감소 실패: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @DeleteMapping("/item/{id}")
     public ResponseEntity<String> deleteItem(
             @PathVariable String id,

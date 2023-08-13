@@ -1,6 +1,7 @@
 package com.example.idempotence.application.item.controller;
 
 import com.example.idempotence.application.item.domain.Item;
+import com.example.idempotence.application.item.service.ItemService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -27,10 +29,22 @@ class IdempotentLocalCachedControllerLoadTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @DisplayName("부하 테스트")
+    @Autowired
+    private ItemService itemService;
+
+    @BeforeEach
+    void setUp() {
+        // 초기 아이템 추가 (수량 0으로 시작)
+        Item item = new Item("multithread-item", "Multithread Item", 10);
+        itemService.addItem(item);
+
+    }
+
+    @DisplayName("부하 테스트 - 수량 감소")
     @Test
-    public void multiThreadedCreationTest() throws Exception {
+    public void multiThreadedIncrementTest() throws Exception {
         int numberOfThreads = 10;
+        int decrementBy = 1;
         String itemId = "multithread-item";
         String idempotencyKeyPrefix = "key-";
 
@@ -40,13 +54,12 @@ class IdempotentLocalCachedControllerLoadTest {
             int finalI = i;
             executor.submit(() -> {
                 try {
-                    Item item = new Item(itemId, "Multithread Item", finalI);
-                    mockMvc.perform(put("/item/" + itemId)
-                                    .contentType(MediaType.APPLICATION_JSON)
+                    mockMvc.perform(put("/item/" + itemId + "/decrement")
                                     .header("idempotency-key", idempotencyKeyPrefix + finalI)
-                                    .content(new ObjectMapper().writeValueAsString(item)))
+                                    .param("decrementBy", String.valueOf(decrementBy))
+                                    .contentType(MediaType.APPLICATION_JSON))
                             .andExpect(status().isOk())
-                            .andExpect(content().string("Updated successfully"));
+                            .andExpect(content().string(containsString("Updated successfully")));
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
@@ -59,9 +72,9 @@ class IdempotentLocalCachedControllerLoadTest {
         latch.await();
 
         // 최종적으로 생성된 데이터의 개수 확인
-        // 데이터의 실제 유형과 구조에 따라 검증 로직 조정
-        mockMvc.perform(get("/item/" + itemId)) // 아이템 조회 API 경로
+        mockMvc.perform(get("/item/" + itemId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.quantity").value(numberOfThreads));
+                .andExpect(jsonPath("$.quantity").value(0));
     }
+
 }

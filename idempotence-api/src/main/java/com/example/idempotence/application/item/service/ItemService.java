@@ -32,18 +32,37 @@ public class ItemService {
 
     // 수량 업데이트
     public Item updateItem(String itemId, String name, int quantity) {
-        Item item = items.get(itemId);
+        return items.compute(itemId, (key, existingItem) -> {
+            if (existingItem == null) {
+                existingItem = new Item(itemId, name, quantity);
+            } else {
+                existingItem.setName(name);
+                existingItem.setQuantity(quantity);
+            }
 
-        if (item == null) {
-            item = new Item(itemId, name, quantity);
-        } else {
-            item.setName(name);
-            item.setQuantity(quantity);
-        }
-
-        items.put(itemId, item);
-        return item;
+            return existingItem;
+        });
     }
+
+    // 수량 증가
+    public Item decrementQuantity(String itemId, int decrementBy) {
+
+        items.compute(itemId, (key, item) -> {
+            if (item == null) {
+                throw new IllegalArgumentException("Item with id " + itemId + " does not exist");
+            }
+            int newQuantity = item.getQuantity() - decrementBy;
+            if (newQuantity < 0) {
+                log.error("수량 감소 실패 id: {}", itemId);
+                throw new IllegalArgumentException("Quantity cannot be negative");
+            }
+            log.info("수량 감소, id: {} by: {} to: {}", itemId, decrementBy, newQuantity);
+            item.setQuantity(newQuantity);
+            return item;
+        });
+        return items.get(itemId);
+    }
+
 
     // 조회
     public Item getItem(String itemId) {

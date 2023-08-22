@@ -1,0 +1,24 @@
+redisson:
+  config: classpath:redisson-config.yaml
+spring:
+  jpa:
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+        use_sql_comments: true
+
+logging:
+  level:
+    org:
+      springframework:
+        retry: DEBUG
+      hibernate:
+        engine:
+          transaction: debug
+        orm:
+          results: debug
+        type:
+          descriptor:
+            sql: trace
+    root: debug

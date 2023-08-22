@@ -17,18 +17,31 @@
 
 ```text
 ├── main
-│         └── java
-│                   └── com
-│                       └── example
-│                           └── idempotence
-│                               └── application
-│                                         └── item
-│                                             ├── controller
-│                                             │         └── IdempotentLocalCachedController.java
-│                                             ├── domain
-│                                             │        └── Item.java
-│                                             └── service
-│                                                 └── ItemService.java
+│         ├── java
+│         │         └── com
+│         │             └── example
+│         │                 └── idempotence
+│         │                     ├── IdempotenceApiApplication.java
+│         │                     ├── application
+│         │                     │         └── item
+│         │                     │             ├── controller
+│         │                     │             │         └── IdempotentLocalCachedController.java
+│         │                     │             ├── domain
+│         │                     │             │         ├── Id.java
+│         │                     │             │         ├── Item.java
+│         │                     │             │         ├── Stock.java
+│         │                     │             │         └── StockRepository.java
+│         │                     │             └── service
+│         │                     │                 ├── ItemService.java
+│         │                     │                 └── StockService.java
+│         │                     └── core
+│         │                         └── config
+│         │                             ├── CacheConfig.java
+│         │                             ├── RedissonConfig.java
+│         │                             └── RetryConfig.java
+│         └── resources
+│             ├── application.yml
+│             └── redisson-config.yml
 └── test
     └── java
         └── com
@@ -37,12 +50,18 @@
                     └── application
                         └── item
                             └── controller
-                                ├── IdempotentLocalCachedControllerDecreaseLoadTest.java    // (1) 재고 감소 부하 테스트
-                                ├── IdempotentLocalCachedControllerDeleteTest.java          // (2) 재고 삭제 테스트 (멱등성) 
-                                ├── IdempotentLocalCachedControllerIncreaseLoadTest.java    // (3) 재고 증가 부하 테스트
-                                ├── IdempotentLocalCachedControllerNoHeaderTest.java        // (4) 재고 감소 테스트 (멱등성 헤더 제외)
-                                ├── IdempotentLocalCachedControllerPutTest.java             // (5) 재고 수정 테스트 (멱등성)
-                                └── IdempotentLocalCachedControllerUnitTest.java            // (6) 재고 수정 단위 테스트
+                            │   ├── IdempotentLocalCachedControllerDecreaseLoadTest.java    // (1) 재고 감소 부하 테스트
+                            │   ├── IdempotentLocalCachedControllerDeleteTest.java          // (2) 재고 삭제 테스트 (멱등성) 
+                            │   ├── IdempotentLocalCachedControllerIncreaseLoadTest.java    // (3) 재고 증가 부하 테스트
+                            │   ├── IdempotentLocalCachedControllerNoHeaderTest.java        // (4) 재고 감소 테스트 (멱등성 헤더 제외)
+                            │   ├── IdempotentLocalCachedControllerPutTest.java             // (5) 재고 수정 테스트 (멱등성)
+                            │   └── IdempotentLocalCachedControllerUnitTest.java            // (6) 재고 수정 단위 테스트
+                            └── service
+                                ├── StockServiceOptimisticLockExceptionTest.java            // (7) 재고 감소 낙관적 락 예외 테스트
+                                ├── StockServiceOptimisticLockRetryTest.java                // (8) 재고 감소 낙관적 락 재시도 테스트
+                                ├── StockServiceOptimisticLockSingleThreadTest.java         // (9) 재고 감소 낙관적 락 단일 스레드 테스트
+                                ├── StockServicePessimisticLockTest.java                    // (10) 재고 감소 비관적 락 테스트
+                                └── StockServiceTest.java                                   // (11) CRUD 테스트
 ```
 
 - [IdempotentLocalCachedController](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/main/java/com/example/idempotence/application/item/controller/IdempotentLocalCachedController.java)
@@ -53,18 +72,33 @@
     - 부하 테스트 용으로 증감에 대한 내용 테스트 추가
 
 - (1): [IdempotentLocalCachedControllerDecreaseLoadTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/controller/IdempotentLocalCachedControllerDecreaseLoadTest.java)
-    - 재고 감소 부하 테스트 (멱등성 헤더 포함)
+    - put 멱등성 수량 감소 부하 테스트 (멱등성 헤더 포함)
 - (2): [IdempotentLocalCachedControllerDeleteTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/controller/IdempotentLocalCachedControllerDeleteTest.java)
-    - 재고 삭제 테스트 (멱등성 헤더 포함)
+    - delete 멱등성 삭제 테스트 (멱등성 헤더 포함)
 - (3): [IdempotentLocalCachedControllerIncreaseLoadTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/controller/IdempotentLocalCachedControllerIncreaseLoadTest.java)
-    - 재고 증가 부하 테스트 (멱등성 헤더 포함)
+    - put 멱등성 수량 증가 부하 테스트 (멱등성 헤더 포함)
 - (4): [IdempotentLocalCachedControllerNoHeaderTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/controller/IdempotentLocalCachedControllerNoHeaderTest.java)
-    - 재고 감소 테스트 (멱등성 헤더 제외)
+    - 수량 감소 테스트 (멱등성 헤더 제외)
 - (5): [IdempotentLocalCachedControllerPutTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/controller/IdempotentLocalCachedControllerPutTest.java)
-    - 재고 수정 테스트 (멱등성 헤더 포함)
+    - 수량 수정 테스트 (멱등성 헤더 포함)
 - (6): [IdempotentLocalCachedControllerUnitTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/controller/IdempotentLocalCachedControllerUnitTest.java)
-    - 재고 수정 단위 테스트
+    - 수량 수정 단위(Mocking) 테스트
 
+- (7): [StockServiceOptimisticLockExceptionTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/service/StockServiceOptimisticLockExceptionTest.java)
+  - 재고 감소 낙관적 락 예외 테스트
+    - 재고 감소에 대한 값 검증은 불가
+    - 단지 경합 발생 시 OptimisticLockingFailureException 발생하는지에 대한 테스트
+- (8): [StockServiceOptimisticLockRetryTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/service/StockServiceOptimisticLockRetryTest.java)
+  - 재고 감소 낙관적 락 재시도 테스트
+    - 재시도 횟수에 대한 검증
+- (9): [StockServiceOptimisticLockSingleThreadTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/service/StockServiceOptimisticLockSingleThreadTest.java)
+  - 재고 감소 낙관적 락 단일 스레드 테스트
+    - 단일 스레드 접근시 값에 대한 변경을 확인하기 위함
+- (10): [StockServicePessimisticLockTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/service/StockServicePessimisticLockTest.java)
+  - 재고 감소 비관적 락 테스트
+    - 재고 감소에 대한 값 검증 가능
+- (11): [StockServiceTest.java](https://github.com/SeokRae/idempotence-kata/blob/master/idempotence-api/src/test/java/com/example/idempotence/application/item/service/StockServiceTest.java)
+    - 그냥 CRUD 테스트
 
 헤더 값으로 관리 하는 곳들이 있어서 일단은 생각나는대로 구현해봤지만, 로컬 캐시로 구현하여 추후 Redis와 같은 글로벌 캐시로 구현 필요
 
